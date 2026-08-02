@@ -178,6 +178,48 @@ class InvitationLinkTest extends TestCase
         );
     }
 
+    /**
+     * Submit to whatever the rendered form says, not to the URL we happen to
+     * hold.
+     *
+     * The earlier test posted straight to the signed URL and passed, while the
+     * real page was posting to url()->current() — which drops the query string
+     * and therefore the signature, giving every invitee 403 Invalid signature
+     * the moment they hit Submit. Only reading the action back out of the HTML
+     * catches that.
+     */
+    #[Test]
+    public function the_forms_own_action_carries_the_signature(): void
+    {
+        $partner = Partner::create(['name' => 'Hridoy', 'default_commission_percent' => 50]);
+        $this->seed(PermissionSeeder::class);
+
+        $invited = app(InvitationService::class)
+            ->invitePartner($partner, 'Hridoy', 'hridoy@example.com');
+
+        $html = $this->get(app(InvitationService::class)->acceptUrl($invited))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(
+            1,
+            preg_match('/<form method="POST" action="([^"]+)"/', $html, $matches),
+            'Could not find the accept-invitation form in the rendered page.'
+        );
+
+        $action = html_entity_decode($matches[1], ENT_QUOTES);
+
+        $this->assertStringContainsString('signature=', $action);
+        $this->assertStringContainsString('expires=', $action);
+
+        $this->post($action, [
+            'password' => 'chosen-by-them',
+            'password_confirmation' => 'chosen-by-them',
+        ])->assertRedirect();
+
+        $this->assertTrue(Hash::check('chosen-by-them', $invited->refresh()->password));
+    }
+
     #[Test]
     public function an_unsigned_link_is_refused(): void
     {

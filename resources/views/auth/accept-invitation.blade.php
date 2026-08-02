@@ -9,7 +9,11 @@
         <p class="text-sm font-medium text-ink">{{ $user->email }}</p>
     </div>
 
-    <form method="POST" action="{{ url()->current() }}" class="mt-6 space-y-4">
+    {{-- full(), not current(): current() drops the query string, taking the
+         expiry and signature with it, and the `signed` middleware then rejects
+         the POST with 403 Invalid signature. The signature covers the URL, not
+         the HTTP method, so posting back to the same signed URL validates. --}}
+    <form method="POST" action="{{ url()->full() }}" class="mt-6 space-y-4">
         @csrf
 
         <div>
