@@ -106,8 +106,12 @@ services:
         sync: false
       - key: MAIL_PASSWORD
         sync: false
+      # Symfony's mailer accepts only "smtp" or "smtps" here — anything else
+      # throws UnsupportedSchemeException on the first send. "tls" looks right
+      # and is not: on 587 the STARTTLS upgrade is negotiated automatically, so
+      # the scheme stays "smtp". Use "smtps" only for implicit TLS on port 465.
       - key: MAIL_SCHEME
-        value: tls
+        value: smtp
       - key: MAIL_FROM_ADDRESS
         sync: false
       - key: MAIL_FROM_NAME
