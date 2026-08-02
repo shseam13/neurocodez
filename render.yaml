@@ -36,6 +36,15 @@ services:
       - key: APP_URL
         sync: false
 
+      # The first account, created on boot by the entrypoint. Render's free tier
+      # has no shell, so there is no other way to make one — and without it
+      # nobody can sign in. Leave these unset and a random password is printed
+      # to the deploy log instead.
+      - key: SEED_OWNER_EMAIL
+        sync: false
+      - key: SEED_OWNER_PASSWORD
+        sync: false
+
       - key: LOG_CHANNEL
         value: stderr # no persistent disk, so logs must go to the console
       - key: LOG_LEVEL

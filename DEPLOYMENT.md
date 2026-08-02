@@ -67,16 +67,23 @@ reads `render.yaml`. Fill in every variable marked `sync: false`.
 The container runs migrations and syncs permissions on boot
 (`docker/entrypoint.sh`), so there is no manual release step.
 
-### 4. Create your account
+### 4. Your account
 
-Once the first deploy is green, open a shell on the service:
+**Render's free tier has no shell** — `Shell` and `Scaling` are marked with ⚡ in
+the sidebar because they need a paid instance. So nothing can be run by hand
+after a deploy, and the container has to be self-sufficient.
 
-```bash
-php artisan db:seed --force
-```
+`docker/entrypoint.sh` therefore runs the full seeder on every boot: roles,
+permissions, the three starter stage sets, company settings, and the owner
+account. Every seeder is idempotent, so repeating it on each deploy is a no-op.
 
-That seeds roles, permissions, the three starter stage sets, company settings,
-and your owner account — printing a temporary password. Change it immediately.
+Set `SEED_OWNER_EMAIL` and `SEED_OWNER_PASSWORD` to choose the first account's
+credentials. Leave them unset and a random password is generated and printed to
+the deploy log — findable, but only on the boot that created the account, so
+set them explicitly if you would rather not go hunting.
+
+The same constraint is why `youtube:sync` runs at boot rather than waiting for
+the hourly schedule: on an instance that sleeps, "hourly" is not a promise.
 
 ### 5. Put Cloudflare in front
 

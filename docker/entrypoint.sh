@@ -71,10 +71,29 @@ php artisan view:cache
 echo "==> Running migrations"
 php artisan migrate --force
 
-# Seeds roles and permissions only. Idempotent, and it is what makes a new
-# permission available after a deploy without a manual step.
-echo "==> Syncing roles and permissions"
-php artisan db:seed --class=PermissionSeeder --force
+# The FULL seeder, not just permissions.
+#
+# Render's free tier has no shell, so there is no way to run this by hand after
+# a deploy — and without it there is no owner account, meaning nobody can sign
+# in at all. Every seeder here is idempotent: StageSetSeeder returns early if
+# any set exists, CompanySetting uses firstOrCreate, and the owner is looked up
+# by email before being created.
+#
+# Set SEED_OWNER_EMAIL and SEED_OWNER_PASSWORD in the environment to choose the
+# first account's credentials. Without them a random password is generated and
+# printed below — readable in the Render deploy log, but only on the boot that
+# actually creates the account.
+echo "==> Seeding roles, permissions, stage sets and the owner account"
+php artisan db:seed --force
+
+# Populate the videos table immediately rather than waiting for the hourly
+# scheduled run — on a free instance that sleeps, "hourly" can be a long time.
+#
+# `|| true` is essential: this script runs under `set -e`, and youtube:sync
+# returns a non-zero exit when the feed is unreachable. Without it, YouTube
+# having a bad day would stop the container from booting at all.
+echo "==> Syncing YouTube videos"
+php artisan youtube:sync || true
 
 # storage/app/public is only used when FILESYSTEM_DISK=public. On Render the
 # disk is ephemeral and uploads go to R2, so this is a no-op there.
