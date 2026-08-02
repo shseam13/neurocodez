@@ -82,9 +82,18 @@ class InvoiceService
          * total 100x too large. Passing the object keeps the unit unambiguous —
          * which is the whole reason the type exists.
          */
+        /*
+         * `subtotal` stays the value of the whole engagement — the line items
+         * describe everything the client is agreeing to, and hiding that on an
+         * advance invoice would leave them unable to see what they signed up
+         * for. `total` is only what is being asked for NOW, which on an advance
+         * request is the percentage rather than the lot.
+         */
+        $invoice->forceFill(['subtotal' => $subtotal])->save();
+
         $invoice->forceFill([
-            'subtotal' => $subtotal,
-            'total' => $subtotal->plus($invoice->tax ?? Money::zero($invoice->currency)),
+            'total' => $invoice->billableSubtotal()
+                ->plus($invoice->tax ?? Money::zero($invoice->currency)),
         ])->save();
 
         return $invoice->refresh();
@@ -102,6 +111,27 @@ class InvoiceService
     public function projectBalance(Invoice $invoice): Money
     {
         return $this->finance->amountDue($invoice->project);
+    }
+
+    /**
+     * What this document should print as still owing.
+     *
+     * An advance request asks for a specific figure, so the project-wide
+     * balance would contradict the "Due now" line directly above it — the
+     * client would read "Due now 15,000" and then "Balance due 25,000" on the
+     * same page and have no idea which to pay.
+     *
+     * Ordinary invoices keep the project balance: payments are recorded against
+     * the project, and for a single invoice the two are the same figure anyway.
+     */
+    public function balanceFor(Invoice $invoice): Money
+    {
+        if (! $invoice->isAdvanceRequest()) {
+            return $this->projectBalance($invoice);
+        }
+
+        return ($invoice->total ?? Money::zero($invoice->currency))
+            ->minus($this->finance->totalPaid($invoice->project));
     }
 
     public function markSent(Invoice $invoice): Invoice

@@ -286,7 +286,7 @@
     <div class="totals-wrap no-split">
         <table class="totals" align="right">
             <tr>
-                <td class="k">Subtotal</td>
+                <td class="k">{{ $invoice->isAdvanceRequest() ? 'Project total' : 'Subtotal' }}</td>
                 <td class="num">{{ $invoice->subtotal->format() }}</td>
             </tr>
             @if ($invoice->tax && $invoice->tax->isPositive())
@@ -295,13 +295,23 @@
                     <td class="num">{{ $invoice->tax->format() }}</td>
                 </tr>
             @endif
+            @if ($invoice->isAdvanceRequest())
+                {{-- The line items priced the whole engagement; this is the
+                     share being asked for now. Both figures are shown so the
+                     client can see what they are agreeing to as well as what
+                     they are paying today. --}}
+                <tr>
+                    <td class="k">Advance ({{ App\Support\Percent::format($invoice->advance_percent) }}%)</td>
+                    <td class="num">{{ $invoice->billableSubtotal()->format() }}</td>
+                </tr>
+            @endif
             <tr>
-                <td class="k">Total</td>
+                <td class="k">{{ $invoice->isAdvanceRequest() ? 'Due now' : 'Total' }}</td>
                 <td class="num">{{ $invoice->total->format() }}</td>
             </tr>
             @if ($paid->isPositive())
                 <tr>
-                    <td class="k">Received</td>
+                    <td class="k">{{ $balance->isPositive() ? 'Advance paid' : 'Received' }}</td>
                     <td class="num">&minus; {{ $paid->format() }}</td>
                 </tr>
             @endif
@@ -316,6 +326,17 @@
     <p class="in-words no-split">
         <span class="k">In words:</span> {{ AmountInWords::of($balance->floorAtZero()) }}
     </p>
+
+    @if ($invoice->isAdvanceRequest() && $invoice->deferredAmount()->isPositive())
+        {{-- Say plainly that more is coming. An advance invoice that shows only
+             the smaller figure invites the client to believe that is the whole
+             price, and the disagreement surfaces at the worst moment — when the
+             work is finished and you are asking for the rest. --}}
+        <p class="in-words no-split" style="margin-top:2mm">
+            The remaining {{ $currencyLabel }} {{ $invoice->deferredAmount()->format() }}
+            will be invoiced on delivery.
+        </p>
+    @endif
 
     <table class="foot no-split">
         <tr>

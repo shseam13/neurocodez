@@ -59,9 +59,11 @@ class InvoiceController extends Controller
         Gate::authorize('view', $invoice);
 
         return view('admin.invoices.edit', [
-            'invoice' => $invoice->load('items', 'project.client'),
+            // project.payments feeds the payment box in the sidebar; without it
+            // preventLazyLoading throws in development.
+            'invoice' => $invoice->load('items', 'project.client', 'project.payments'),
             'paid' => $this->finance->totalPaid($invoice->project),
-            'balance' => $this->invoices->projectBalance($invoice),
+            'balance' => $this->invoices->balanceFor($invoice),
         ]);
     }
 
@@ -73,6 +75,10 @@ class InvoiceController extends Controller
             'issued_at' => ['required', 'date'],
             'due_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
             'tax' => ['nullable', 'numeric', 'min:0'],
+            // Blank means "bill the whole thing". Capped below 100 because an
+            // advance of the entire amount is just an ordinary invoice, and
+            // above it would be asking for more than the work is worth.
+            'advance_percent' => ['nullable', 'numeric', 'gt:0', 'lt:100'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:255'],
@@ -84,6 +90,7 @@ class InvoiceController extends Controller
             'issued_at' => $data['issued_at'],
             'due_at' => $data['due_at'] ?? null,
             'tax' => $data['tax'] ?? 0,
+            'advance_percent' => $data['advance_percent'] ?? null,
             'notes' => $data['notes'] ?? null,
         ])->save();
 
@@ -179,7 +186,7 @@ class InvoiceController extends Controller
                 'invoice' => $invoice,
                 'settings' => $settings,
                 'paid' => $this->finance->totalPaid($invoice->project),
-                'balance' => $this->invoices->projectBalance($invoice),
+                'balance' => $this->invoices->balanceFor($invoice),
                 'isReceipt' => false,
                 'currencyLabel' => $useGlyph && $invoice->currency === 'BDT' ? '৳' : $invoice->currency,
                 'fontFamily' => $useGlyph ? "'Noto Sans Bengali', DejaVu Sans, sans-serif" : 'DejaVu Sans, sans-serif',

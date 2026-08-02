@@ -111,6 +111,26 @@
                                value="{{ old('tax', $invoice->tax?->toMajor() ?? 0) }}"
                                class="nums w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-ink focus:border-brand focus:outline-none disabled:opacity-60">
                     </div>
+
+                    <div>
+                        <label for="advance_percent" class="mb-1.5 block text-sm font-medium text-ink">
+                            Advance requested
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input id="advance_percent" name="advance_percent" type="number" step="0.01"
+                                   min="0.01" max="99.99" placeholder="—" @disabled($locked)
+                                   value="{{ old('advance_percent', $invoice->advance_percent !== null ? \App\Support\Percent::format($invoice->advance_percent) : '') }}"
+                                   class="nums w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-ink focus:border-brand focus:outline-none disabled:opacity-60">
+                            <span class="text-sm text-ink-muted">%</span>
+                        </div>
+                        <p class="mt-1.5 text-xs text-ink-muted">
+                            Leave blank to bill the whole amount. Set it to ask for part up front —
+                            the line items still show the full scope, and the rest is invoiced later.
+                        </p>
+                        @error('advance_percent')
+                            <p class="mt-1.5 text-xs font-medium text-overdue">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="mt-5">
@@ -132,16 +152,32 @@
             <div class="surface p-5">
                 <h2 class="mb-4 text-xs font-semibold uppercase tracking-wider text-ink-muted">Totals</h2>
                 <dl class="nums space-y-2 text-sm">
-                    @foreach ([
-                        'Subtotal' => $invoice->subtotal,
-                        'Tax' => $invoice->tax,
-                        'Invoice total' => $invoice->total,
-                    ] as $label => $amount)
+                    <div class="flex justify-between gap-4">
+                        <dt class="text-ink-muted">{{ $invoice->isAdvanceRequest() ? 'Full scope' : 'Subtotal' }}</dt>
+                        <dd class="font-medium text-ink">{{ $invoice->subtotal?->format() ?? '0.00' }}</dd>
+                    </div>
+
+                    @if ($invoice->isAdvanceRequest())
                         <div class="flex justify-between gap-4">
-                            <dt class="text-ink-muted">{{ $label }}</dt>
-                            <dd class="font-medium text-ink">{{ $amount?->format() ?? '0.00' }}</dd>
+                            <dt class="text-ink-muted">
+                                Advance {{ \App\Support\Percent::format($invoice->advance_percent) }}%
+                            </dt>
+                            <dd class="font-medium text-ink">{{ $invoice->billableSubtotal()->format() }}</dd>
                         </div>
-                    @endforeach
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-ink-muted">Invoiced later</dt>
+                            <dd class="text-ink-muted">{{ $invoice->deferredAmount()->format() }}</dd>
+                        </div>
+                    @endif
+
+                    <div class="flex justify-between gap-4">
+                        <dt class="text-ink-muted">Tax</dt>
+                        <dd class="font-medium text-ink">{{ $invoice->tax?->format() ?? '0.00' }}</dd>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                        <dt class="text-ink-muted">{{ $invoice->isAdvanceRequest() ? 'Due now' : 'Invoice total' }}</dt>
+                        <dd class="font-semibold text-ink">{{ $invoice->total?->format() ?? '0.00' }}</dd>
+                    </div>
                 </dl>
 
                 <div class="mt-4 border-t border-line pt-4">
@@ -151,19 +187,89 @@
                             <dd class="text-paid">{{ $paid->format() }}</dd>
                         </div>
                         <div class="flex justify-between gap-4">
-                            <dt class="text-ink-muted">Project balance</dt>
+                            <dt class="text-ink-muted">
+                                {{ $invoice->isAdvanceRequest() ? 'Due on this invoice' : 'Project balance' }}
+                            </dt>
                             <dd class="font-semibold {{ $balance->isPositive() ? 'text-overdue' : 'text-ink-muted' }}">
                                 {{ $balance->format() }}
                             </dd>
                         </div>
                     </dl>
-                    {{-- Payments are recorded against the project, not against an
-                         individual invoice, so this is the project-wide balance. --}}
                     <p class="mt-2 text-xs text-ink-muted">
-                        Payments are tracked per project, so this balance covers the whole project.
+                        @if ($invoice->isAdvanceRequest())
+                            This invoice asks for the advance only. The project balance is
+                            {{ $invoice->project->currency ?? 'BDT' }}
+                            {{ app(\App\Services\InvoiceService::class)->projectBalance($invoice)->format() }}.
+                        @else
+                            {{-- Payments are recorded against the project, not an
+                                 individual invoice, so this is project-wide. --}}
+                            Payments are tracked per project, so this balance covers the whole project.
+                        @endif
                     </p>
                 </div>
             </div>
+
+            {{-- Recording a payment from here rather than only on the project
+                 page: an advance almost always arrives in response to an
+                 invoice, and having to navigate away to log it is how payments
+                 end up unrecorded. It still writes to the project, which stays
+                 the single source of truth for money received. --}}
+            @can('create', \App\Models\Payment::class)
+                <div class="surface p-5">
+                    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">Record a payment</h2>
+
+                    <form method="POST" action="{{ route('admin.projects.payments.store', $invoice->project) }}"
+                          class="space-y-2.5">
+                        @csrf
+
+                        <div>
+                            <label for="pay_amount" class="sr-only">Amount</label>
+                            <input id="pay_amount" name="amount" type="number" step="0.01" required
+                                   placeholder="Amount"
+                                   value="{{ old('amount', $balance->isPositive() ? $invoice->total?->toMajor() : null) }}"
+                                   class="nums w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <input name="paid_at" type="date" required value="{{ old('paid_at', now()->toDateString()) }}"
+                                   class="nums w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none">
+
+                            <select name="method" required
+                                    class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none">
+                                @foreach (\App\Enums\PaymentMethod::cases() as $case)
+                                    <option value="{{ $case->value }}" @selected(old('method') === $case->value)>{{ $case->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <input name="reference" type="text" maxlength="190" placeholder="Reference (optional)"
+                               value="{{ old('reference') }}"
+                               class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none">
+
+                        <button type="submit" data-busy-text="Saving…"
+                                class="w-full rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
+                            Add payment
+                        </button>
+
+                        @error('amount')<p class="text-xs font-medium text-overdue">{{ $message }}</p>@enderror
+                    </form>
+
+                    @if ($invoice->project->payments->isNotEmpty())
+                        <div class="mt-4 space-y-1.5 border-t border-line pt-3">
+                            @foreach ($invoice->project->payments->sortByDesc('paid_at')->take(5) as $payment)
+                                <div class="flex justify-between gap-3 text-xs">
+                                    <span class="text-ink-muted">
+                                        {{ $payment->paid_at->format('j M') }} &middot; {{ $payment->method->label() }}
+                                    </span>
+                                    <span class="nums {{ $payment->amount->isNegative() ? 'text-overdue' : 'text-paid' }}">
+                                        {{ $payment->amount->format() }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endcan
 
             <div class="surface p-5">
                 <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">Status</h2>

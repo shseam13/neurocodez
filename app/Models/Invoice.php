@@ -21,7 +21,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'project_id', 'number', 'issued_at', 'due_at', 'status',
-        'subtotal', 'tax', 'total', 'currency', 'notes', 'created_by',
+        'subtotal', 'tax', 'advance_percent', 'total', 'currency', 'notes', 'created_by',
     ];
 
     protected function casts(): array
@@ -32,8 +32,40 @@ class Invoice extends Model
             'status' => InvoiceStatus::class,
             'subtotal' => MoneyCast::class,
             'tax' => MoneyCast::class,
+            'advance_percent' => 'decimal:2',
             'total' => MoneyCast::class,
         ];
+    }
+
+    /**
+     * Is this invoice asking for part of the work up front?
+     *
+     * 100% is not an advance — it is the whole thing — so it is treated as an
+     * ordinary invoice and the advance wording is left off the document.
+     */
+    public function isAdvanceRequest(): bool
+    {
+        return $this->advance_percent !== null
+            && (float) $this->advance_percent > 0
+            && (float) $this->advance_percent < 100;
+    }
+
+    /** The portion being billed now: the whole subtotal unless this is an advance. */
+    public function billableSubtotal(): Money
+    {
+        $subtotal = $this->subtotal ?? Money::zero($this->currency);
+
+        return $this->isAdvanceRequest()
+            ? $subtotal->percent((float) $this->advance_percent)
+            : $subtotal;
+    }
+
+    /** What is left to invoice later. Zero on an ordinary invoice. */
+    public function deferredAmount(): Money
+    {
+        $subtotal = $this->subtotal ?? Money::zero($this->currency);
+
+        return $subtotal->minus($this->billableSubtotal());
     }
 
     public function project(): BelongsTo
