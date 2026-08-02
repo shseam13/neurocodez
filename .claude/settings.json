@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -q -m 'Let SEED_OWNER_PASSWORD reset an existing owner, not just create one *)"
+    ]
+  }
+}
