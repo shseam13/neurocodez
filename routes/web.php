@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\LeadController;
@@ -142,6 +143,13 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 */
 Route::middleware('auth')->group(function () {
     Route::patch('/preferences/theme', [PreferenceController::class, 'theme'])->name('preferences.theme');
+
+    // Outside the account-type groups on purpose: staff, clients and partners
+    // all need to change their own password, under identical rules.
+    Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])
+        ->middleware('throttle:6,1')
+        ->name('account.password');
 
     /*
      * One download endpoint for everyone, authorised per request by

@@ -101,7 +101,14 @@
                     {{ $user->isSuperAdmin() ? 'Owner' : $user->type->label() }}
                 </p>
 
-                <form method="POST" action="{{ route('logout') }}" class="mt-3">
+                <a href="{{ route('account.edit') }}"
+                   @class([
+                       'mt-3 block rounded-lg px-3 py-2 text-sm font-medium transition',
+                       'bg-brand text-white' => request()->routeIs('account.*'),
+                       'text-ink-soft hover:bg-surface-alt hover:text-ink' => ! request()->routeIs('account.*'),
+                   ])>Account</a>
+
+                <form method="POST" action="{{ route('logout') }}" class="mt-1">
                     @csrf
                     <button type="submit"
                             class="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-soft transition hover:bg-surface-alt hover:text-overdue">
@@ -136,7 +143,14 @@
                            ])>{{ $item['label'] }}</a>
                     @endforeach
 
-                    <form method="POST" action="{{ route('logout') }}" class="ml-auto">
+                    <a href="{{ route('account.edit') }}"
+                       @class([
+                           'ml-auto whitespace-nowrap rounded-lg px-3 py-1.5 text-sm',
+                           'bg-brand text-white' => request()->routeIs('account.*'),
+                           'text-ink-muted' => ! request()->routeIs('account.*'),
+                       ])>Account</a>
+
+                    <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-ink-muted">
                             Sign out
