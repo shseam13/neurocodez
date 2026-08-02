@@ -20,6 +20,10 @@
 /public/storage
 /storage/*.key
 /storage/pail
+# Database CA certificates. Not secret, but they belong in DB_SSL_CA_CERT so the
+# image stays usable against any database — see docker/entrypoint.sh.
+/ca.pem
+/storage/certs/
 /vendor
 _ide_helper.php
 Homestead.json
