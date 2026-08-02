@@ -114,17 +114,30 @@ services:
         value: Neuro Codez
 
       # --- app settings -----------------------------------------------------
+      # Public contact details. Not secrets — they are printed on the website
+      # and on every invoice — so they are set here rather than typed into the
+      # dashboard one field at a time.
       - key: NEURO_YOUTUBE_CHANNEL
         value: "@neuro-codez"
       - key: NEURO_PUBLIC_EMAIL
-        sync: false
+        value: neurocodez.tech@gmail.com
       - key: NEURO_PUBLIC_PHONE
-        sync: false
+        value: "+8801626-014236"
       - key: NEURO_WHATSAPP
-        sync: false
+        value: "+8801626014236"
       - key: NEURO_SOCIAL_YOUTUBE
         value: https://www.youtube.com/@neuro-codez
       - key: NEURO_SOCIAL_FACEBOOK
-        sync: false
+        value: https://www.facebook.com/profile.php?id=61564889531223
       - key: NEURO_SOCIAL_INSTAGRAM
-        sync: false
+        value: https://instagram.com/neuro_codez
+
+      - key: NEURO_CURRENCY
+        value: BDT
+      - key: NEURO_INVOICE_DUE_DAYS
+        value: 14
+      # Keep false until Noto Sans Bengali is registered with dompdf — the
+      # bundled DejaVu fonts have no Bengali script, so a ৳ renders as an empty
+      # box on the invoice. Amounts print as "BDT 50,000.00" instead.
+      - key: NEURO_TAKA_GLYPH
+        value: false
