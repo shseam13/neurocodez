@@ -78,13 +78,29 @@
     <div class="flex min-h-dvh">
         {{-- Sidebar: glass, because it is chrome. Data below is on solid
              surfaces — never blur behind a table. --}}
-        <aside class="glass-flat sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-y-0 border-l-0 p-4 lg:flex">
-            <a href="{{ route($user->type->homeRoute()) }}" class="mb-8 flex items-center gap-2.5 px-2">
+        {{--
+            Three bands: a pinned brand, a scrolling nav, a pinned footer.
+
+            The sidebar is its own scroll context so a long nav never lengthens
+            the page — otherwise the whole document scrolls just to reach Sign
+            out, dragging the content area with it.
+        --}}
+        <aside class="glass-flat sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-y-0 border-l-0 lg:flex">
+            <a href="{{ route($user->type->homeRoute()) }}"
+               class="mb-6 flex shrink-0 items-center gap-2.5 px-6 pt-4">
                 <x-brand.mark :size="30" class="text-brand" />
                 <span class="font-bold tracking-tight text-ink">NEURO&#8209;CODEZ</span>
             </a>
 
-            <nav class="flex-1 space-y-1" aria-label="Main">
+            {{--
+                min-h-0 is load-bearing, not decoration.
+
+                A flex child defaults to min-height:auto, which refuses to
+                shrink below its content — so overflow-y-auto would never
+                engage and the nav would push the footer off-screen instead of
+                scrolling. This is the whole bug.
+            --}}
+            <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto px-4" aria-label="Main">
                 @foreach ($nav as $item)
                     <a href="{{ route($item['route']) }}"
                        @class([
@@ -95,7 +111,7 @@
                 @endforeach
             </nav>
 
-            <div class="mt-4 border-t border-line pt-4">
+            <div class="shrink-0 border-t border-line px-4 pb-4 pt-4">
                 <p class="px-3 text-sm font-medium text-ink">{{ $user->name }}</p>
                 <p class="px-3 text-xs text-ink-muted">
                     {{ $user->isSuperAdmin() ? 'Owner' : $user->type->label() }}
