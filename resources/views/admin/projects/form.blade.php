@@ -238,6 +238,34 @@
             </button>
             <a href="{{ $editing ? route('admin.projects.show', $project) : route('admin.projects.index') }}"
                class="px-2 py-2.5 text-sm text-ink-muted hover:text-ink">Cancel</a>
+
+            @if ($editing)
+                @can('delete', $project)
+                    <span class="ml-auto">
+                        <button type="submit"
+                                form="delete-project"
+                                class="text-sm font-medium text-overdue hover:underline"
+                                onclick="return confirm('Delete {{ addslashes($project->title) }}? This cannot be undone.')">
+                            Delete project
+                        </button>
+                    </span>
+                @endcan
+            @endif
         </div>
     </form>
+
+    @if ($editing)
+        @can('delete', $project)
+            @error('project')
+                <p class="mt-4 text-sm font-medium text-overdue">{{ $message }}</p>
+            @enderror
+
+            {{-- Separate form: a delete button must never sit inside the edit
+                 form, or a stray Enter key could submit the wrong action. --}}
+            <form id="delete-project" method="POST" action="{{ route('admin.projects.destroy', $project) }}" class="hidden">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endcan
+    @endif
 </x-layouts.admin>

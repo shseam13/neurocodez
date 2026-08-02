@@ -121,6 +121,88 @@ class ProjectCrudTest extends TestCase
         $this->assertIsInt($project->client_id);
     }
 
+    /**
+     * The route and the controller both existed; no view ever linked to them,
+     * so a project could not be deleted from the UI at all. That only surfaced
+     * when a failed create left a duplicate behind and there was no way to
+     * clear it up.
+     */
+    #[Test]
+    public function the_edit_page_offers_a_way_to_delete_the_project(): void
+    {
+        $project = Project::create([
+            'client_id' => $this->client()->id, 'title' => 'Portfolio site', 'agreed_amount' => 30000,
+        ]);
+
+        $this->actingAs($this->staff(User::ROLE_SUPER_ADMIN))
+            ->get(route('admin.projects.edit', $project))
+            ->assertOk()
+            ->assertSee('Delete project')
+            ->assertSee(route('admin.projects.destroy', $project), escape: false);
+    }
+
+    /**
+     * Deleting records is owner-only (Permission::ownerOnly), so an admin must
+     * not even be offered the control.
+     */
+    #[Test]
+    public function an_admin_is_not_offered_the_delete_control(): void
+    {
+        $project = Project::create([
+            'client_id' => $this->client()->id, 'title' => 'Portfolio site', 'agreed_amount' => 30000,
+        ]);
+
+        // One user, reused: the helper hard-codes an email, so calling it twice
+        // collides on the unique index.
+        $admin = $this->staff(User::ROLE_ADMIN);
+
+        $this->actingAs($admin)
+            ->get(route('admin.projects.edit', $project))
+            ->assertOk()
+            ->assertDontSee('Delete project');
+
+        // Hiding the button is not the control; the policy is.
+        $this->actingAs($admin)
+            ->delete(route('admin.projects.destroy', $project))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function a_project_with_no_money_against_it_can_be_deleted(): void
+    {
+        $project = Project::create([
+            'client_id' => $this->client()->id, 'title' => 'Duplicate', 'agreed_amount' => 30000,
+        ]);
+
+        $this->actingAs($this->staff(User::ROLE_SUPER_ADMIN))
+            ->delete(route('admin.projects.destroy', $project))
+            ->assertRedirect(route('admin.projects.index'));
+
+        $this->assertSoftDeleted('projects', ['id' => $project->id]);
+    }
+
+    /**
+     * Payment history is the record of what actually changed hands, and is not
+     * recoverable from anywhere else.
+     */
+    #[Test]
+    public function a_project_that_has_taken_money_is_refused(): void
+    {
+        $project = Project::create([
+            'client_id' => $this->client()->id, 'title' => 'Paid work', 'agreed_amount' => 30000,
+        ]);
+
+        $project->payments()->create([
+            'amount' => 5000, 'paid_at' => now(), 'method' => 'bkash',
+        ]);
+
+        $this->actingAs($this->staff(User::ROLE_SUPER_ADMIN))
+            ->delete(route('admin.projects.destroy', $project))
+            ->assertSessionHasErrors('project');
+
+        $this->assertDatabaseHas('projects', ['id' => $project->id, 'deleted_at' => null]);
+    }
+
     #[Test]
     public function adding_an_approved_charge_raises_the_balance_but_not_the_agreed_amount(): void
     {
