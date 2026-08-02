@@ -1,0 +1,670 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views';
+
+/* ---------------------------------------------------------------------------
+   Neuro Codez — "Balanced Glass"
+
+   Every colour is a runtime CSS variable, never a literal in a component.
+   `@theme inline` makes Tailwind utilities emit var() references instead of
+   resolved values, which is what lets one stylesheet serve both themes.
+
+   Brand rule: #914EE9 is a FILL, never a text colour. It measures 3.90:1 on
+   the dark canvas and 4.24:1 on the light one — both below the 4.5:1 needed
+   for body text. Text uses --brand-text, which is tinted per theme.
+--------------------------------------------------------------------------- */
+
+@theme inline {
+    /* Noto Sans Bengali sits right after Inter: the browser falls through to it
+       per-glyph for Bengali characters, so bilingual copy renders consistently
+       everywhere instead of depending on what the device has installed. */
+    --font-sans: 'Inter', 'Noto Sans Bengali', 'Instrument Sans', ui-sans-serif, system-ui,
+        -apple-system, 'Segoe UI', Roboto, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    --color-bg-base: var(--bg-base);
+    --color-bg-deep: var(--bg-deep);
+    --color-brand: var(--brand);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-text: var(--brand-text);
+    --color-surface: var(--surface-solid);
+    --color-surface-alt: var(--surface-alt);
+    --color-line: var(--border-solid);
+
+    --color-ink: var(--text-primary);
+    --color-ink-soft: var(--text-secondary);
+    --color-ink-muted: var(--text-muted);
+
+    --color-paid: var(--paid);
+    --color-due-soon: var(--due-soon);
+    --color-overdue: var(--overdue);
+    --color-info: var(--info);
+}
+
+/* Dark is the default — the admin app lives here. */
+:root,
+:root[data-theme='dark'] {
+    color-scheme: dark;
+
+    --bg-base: #1e073a;
+    --bg-deep: #1c0637;
+
+    --brand: #914ee9;
+    --brand-hover: #a063ef;
+    --brand-text: #b98cf2; /* 7.06:1 on --bg-base */
+
+    --glass-fill: rgb(255 255 255 / 0.07);
+    --glass-border: rgb(255 255 255 / 0.15);
+    --glass-highlight: rgb(255 255 255 / 0.22);
+    --glass-blur: 16px;
+
+    --surface-solid: #241046;
+    --surface-alt: #2b1452;
+    --border-solid: rgb(255 255 255 / 0.1);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgb(244 240 250 / 0.66);
+    --text-muted: rgb(244 240 250 / 0.45);
+
+    --paid: #34d399; /* 9.53:1 */
+    --due-soon: #fbbf24;
+    --overdue: #fb7185; /* 6.80:1 */
+    --info: #38bdf8;
+
+    --orb-a: #914ee9;
+    --orb-b: #6934ad;
+    --orb-c: #63369f;
+    --orb-opacity: 0.55;
+    --grain-opacity: 0.035;
+
+    --pattern-color: #b98cf2;
+    --pattern-opacity: 0.07;
+
+    --code-bg: #150526;
+    --code-fg: #e6dcf7;
+
+    /* Nodes joined by links — the logo motif as a repeating tile. */
+    --neural-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cpath d='M0 40 L85 70 L160 40 M40 0 L85 70 M85 70 L125 115 M20 110 L85 70 M20 110 L40 160 M125 115 L160 150' stroke='%23000' stroke-width='1.1' fill='none' opacity='.5'/%3E%3Cg fill='%23000'%3E%3Ccircle cx='0' cy='40' r='2.5'/%3E%3Ccircle cx='160' cy='40' r='2.5'/%3E%3Ccircle cx='40' cy='0' r='2.5'/%3E%3Ccircle cx='40' cy='160' r='2.5'/%3E%3Ccircle cx='85' cy='70' r='3.6'/%3E%3Ccircle cx='125' cy='115' r='2.5'/%3E%3Ccircle cx='20' cy='110' r='2.5'/%3E%3Ccircle cx='160' cy='150' r='2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+:root[data-theme='light'] {
+    color-scheme: light;
+
+    --bg-base: #f5f2fb;
+    --bg-deep: #e9e2f7;
+
+    --brand: #914ee9;
+    --brand-hover: #7c3aed;
+    --brand-text: #7c3aed; /* 5.15:1 on --bg-base */
+
+    --glass-fill: rgb(255 255 255 / 0.65);
+    --glass-border: rgb(255 255 255 / 0.9);
+    --glass-highlight: rgb(255 255 255 / 1);
+    --glass-blur: 16px;
+
+    --surface-solid: #ffffff;
+    --surface-alt: #faf8fe;
+    --border-solid: #e9e2f7;
+
+    --text-primary: #1e073a; /* 18.3:1 on white */
+    --text-secondary: rgb(30 7 58 / 0.66);
+    --text-muted: rgb(30 7 58 / 0.45);
+
+    --paid: #059669;
+    --due-soon: #b45309;
+    --overdue: #be123c;
+    --info: #0284c7;
+
+    --orb-a: #b98cf2;
+    --orb-b: #d9c4f8;
+    --orb-c: #c4a0f5;
+    --orb-opacity: 0.5;
+    --grain-opacity: 0.02;
+
+    /* Light theme carries the texture a little stronger — on near-white it
+       needs more presence to register at all, the way the reference site's
+       honeycomb does. */
+    --pattern-color: #914ee9;
+    --pattern-opacity: 0.1;
+
+    --code-bg: #1e073a;
+    --code-fg: #e6dcf7;
+}
+
+@layer base {
+    html {
+        background-color: var(--bg-deep);
+    }
+
+    /*
+      body must NOT carry a background colour. A child with a negative z-index
+      paints above the root canvas background but *below* its parent's own
+      background — so an opaque body would bury the orb field entirely.
+      The canvas colour comes from html, and .orb-field paints --bg-base itself.
+    */
+    body {
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        min-height: 100dvh;
+    }
+
+    /* Money must align down a column. Non-negotiable in a finance app. */
+    .nums,
+    td.nums,
+    [data-nums] {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum' 1;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+    ::selection {
+        background: var(--brand);
+        color: #fff;
+    }
+}
+
+@layer components {
+    /* ---------------------------------------------------------------- glass */
+
+    /*
+      Glass belongs on CONTAINERS only. Never put backdrop-filter on repeating
+      rows — blur costs GPU per element and a 50-row payments table will drop
+      frames on a mid-range Android, which is where this ships as a PWA.
+      Budget: <= 8 blurred elements per viewport.
+    */
+    .glass {
+        position: relative;
+        background: var(--glass-fill);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+        border-radius: 1rem;
+        /* The light-catching top edge — this single detail is what separates
+           real glass from a grey box. */
+        box-shadow:
+            inset 0 1px 0 0 var(--glass-highlight),
+            0 8px 32px rgb(0 0 0 / 0.18);
+    }
+
+    .glass-flat {
+        background: var(--glass-fill);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+    }
+
+    /* Solid surface — data tables, forms, anything dense or long. */
+    .surface {
+        background: var(--surface-solid);
+        border: 1px solid var(--border-solid);
+        border-radius: 1rem;
+    }
+
+    .surface-alt {
+        background: var(--surface-alt);
+    }
+
+    /* ----------------------------------------------------------- background */
+
+    /*
+      Blur over a flat colour reads as fog. The orbs are what the glass is
+      actually refracting, and their gradient stops come from the glow ring in
+      logo_rounded.png — so the treatment is brand-derived, not a borrowed trend.
+    */
+    .orb-field {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        overflow: hidden;
+        pointer-events: none;
+        background: var(--bg-base);
+    }
+
+    .orb {
+        position: absolute;
+        border-radius: 50%;
+        opacity: var(--orb-opacity);
+        filter: blur(80px);
+        will-change: transform;
+    }
+
+    .orb-1 {
+        width: 46vmax;
+        height: 46vmax;
+        top: -12vmax;
+        left: -10vmax;
+        background: radial-gradient(circle at 30% 30%, var(--orb-a), transparent 68%);
+        animation: orb-drift-a 34s ease-in-out infinite alternate;
+    }
+
+    .orb-2 {
+        width: 40vmax;
+        height: 40vmax;
+        bottom: -14vmax;
+        right: -8vmax;
+        background: radial-gradient(circle at 60% 40%, var(--orb-b), transparent 68%);
+        animation: orb-drift-b 42s ease-in-out infinite alternate;
+    }
+
+    .orb-3 {
+        width: 30vmax;
+        height: 30vmax;
+        top: 38%;
+        left: 52%;
+        background: radial-gradient(circle at 50% 50%, var(--orb-c), transparent 70%);
+        animation: orb-drift-c 50s ease-in-out infinite alternate;
+    }
+
+    /*
+      Grain is mandatory, not decoration. Wide gradients on dark purple band
+      badly on 6-8 bit phone panels; a few percent of noise dithers it away.
+    */
+    .grain {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: var(--grain-opacity);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /*
+      Neural node-and-link texture for the public site.
+
+      Same job as the honeycomb textures you see on tech sites, but drawn from
+      the Neuro Codez mark: nodes joined by links, which is literally the logo
+      and literally the slogan.
+
+      Implemented as a MASK rather than a background image so a single SVG
+      serves both themes — the colour comes from --pattern-color, not from
+      inside the data URI. The tile is built so its left/right nodes meet at
+      y=40 and its top/bottom nodes meet at x=40, so it repeats without a seam.
+    */
+    .neural-pattern {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background-color: var(--pattern-color);
+        opacity: var(--pattern-opacity);
+        -webkit-mask-image: var(--neural-tile);
+        mask-image: var(--neural-tile);
+        -webkit-mask-repeat: repeat;
+        mask-repeat: repeat;
+        -webkit-mask-size: 160px 160px;
+        mask-size: 160px 160px;
+    }
+
+    /* Fades the texture out where it would otherwise crowd body copy. */
+    .neural-pattern-fade {
+        -webkit-mask-composite: source-in;
+        mask-composite: intersect;
+        -webkit-mask-image: var(--neural-tile), linear-gradient(to bottom, #000, transparent);
+        mask-image: var(--neural-tile), linear-gradient(to bottom, #000, transparent);
+        -webkit-mask-size: 160px 160px, 100% 100%;
+        mask-size: 160px 160px, 100% 100%;
+        -webkit-mask-repeat: repeat, no-repeat;
+        mask-repeat: repeat, no-repeat;
+    }
+
+    /* Concentric arcs lifted from the app icon — login and dashboard hero only. */
+    .arc-rings {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0.28;
+        background:
+            radial-gradient(circle, transparent 41%, var(--brand) 41.4%, transparent 42.2%),
+            radial-gradient(circle, transparent 47%, var(--brand) 47.3%, transparent 48%);
+        mask-image: radial-gradient(circle, #000 40%, transparent 72%);
+    }
+
+    /* ------------------------------------------------------------ long-form */
+
+    /* Typography for rendered Markdown (blog posts, case studies).
+       Hand-rolled rather than @tailwindcss/typography so it reads from our own
+       theme tokens and works in both themes without a plugin config. */
+    .prose-neuro {
+        color: var(--text-secondary);
+        font-size: 1.0625rem;
+        line-height: 1.75;
+    }
+
+    .prose-neuro > * + * { margin-top: 1.25em; }
+
+    .prose-neuro h2,
+    .prose-neuro h3,
+    .prose-neuro h4 {
+        color: var(--text-primary);
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        scroll-margin-top: 6rem; /* clears the sticky header on anchor jumps */
+    }
+
+    .prose-neuro h2 { font-size: 1.6rem; margin-top: 2.25em; }
+    .prose-neuro h3 { font-size: 1.28rem; margin-top: 1.9em; }
+    .prose-neuro h4 { font-size: 1.1rem; margin-top: 1.6em; }
+
+    .prose-neuro a {
+        color: var(--brand-text);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+    .prose-neuro a:hover { text-decoration-thickness: 2px; }
+
+    .prose-neuro strong { color: var(--text-primary); font-weight: 600; }
+
+    .prose-neuro ul,
+    .prose-neuro ol { padding-left: 1.5em; }
+    .prose-neuro ul { list-style: disc; }
+    .prose-neuro ol { list-style: decimal; }
+    .prose-neuro li + li { margin-top: 0.4em; }
+    .prose-neuro li::marker { color: var(--brand-text); }
+
+    .prose-neuro blockquote {
+        border-left: 3px solid var(--brand);
+        padding-left: 1.1em;
+        font-style: italic;
+        color: var(--text-secondary);
+    }
+
+    .prose-neuro img {
+        border-radius: 1rem;
+        border: 1px solid var(--border-solid);
+    }
+
+    .prose-neuro hr { border-color: var(--border-solid); }
+
+    /* Inline code */
+    .prose-neuro code {
+        background: var(--surface-alt);
+        border: 1px solid var(--border-solid);
+        border-radius: 0.375rem;
+        padding: 0.12em 0.38em;
+        font-size: 0.9em;
+        color: var(--brand-text);
+    }
+
+    /* Fenced blocks. Tutorials are the point of this blog, so code must be
+       comfortable to read and must scroll on its own rather than forcing the
+       page sideways on a phone. */
+    .prose-neuro pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border-solid);
+        border-radius: 0.875rem;
+        padding: 1.1rem 1.25rem;
+        overflow-x: auto;
+        font-size: 0.9rem;
+        line-height: 1.65;
+    }
+
+    .prose-neuro pre code {
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--code-fg);
+        font-size: inherit;
+    }
+
+    .prose-neuro table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+        display: block;
+        overflow-x: auto;
+    }
+    .prose-neuro th,
+    .prose-neuro td {
+        border: 1px solid var(--border-solid);
+        padding: 0.55rem 0.75rem;
+        text-align: left;
+    }
+    .prose-neuro th { color: var(--text-primary); font-weight: 600; background: var(--surface-alt); }
+
+    /* ---------------------------------------------------------- video modal */
+
+    .video-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .video-modal[hidden] { display: none; }
+
+    /* Locks background scroll while the dialog is open. */
+    body.video-modal-open { overflow: hidden; }
+
+    .video-modal-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgb(21 5 38 / 0.82);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        animation: video-modal-fade 0.18s ease-out;
+    }
+
+    /*
+      Always dark, in BOTH themes — deliberately not var(--bg-deep).
+      Two reasons: a dark surround is the convention for video and frames black
+      footage without a bright halo, and the chrome here uses fixed white text.
+      Using the theme token made the panel light lavender in light mode with
+      white text on it, which was effectively unreadable.
+    */
+    .video-modal-panel {
+        position: relative;
+        width: min(100%, 1100px);
+        border-radius: 1rem;
+        overflow: hidden;
+        background: #150526;
+        border: 1px solid rgb(255 255 255 / 0.14);
+        box-shadow: 0 24px 70px rgb(0 0 0 / 0.5);
+        animation: video-modal-rise 0.2s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+
+    .video-modal-bar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 0.75rem 0.75rem 1.15rem;
+    }
+
+    .video-modal-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #fff;
+        /* Long bilingual titles must not push the close button off-screen. */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .video-modal-close {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 9999px;
+        color: rgb(255 255 255 / 0.75);
+        background: rgb(255 255 255 / 0.08);
+        transition: color 0.15s, background 0.15s;
+    }
+    .video-modal-close:hover { color: #fff; background: rgb(255 255 255 / 0.16); }
+    .video-modal-close svg { width: 1.1rem; height: 1.1rem; }
+
+    .video-modal-frame {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: #000;
+    }
+
+    .video-modal-frame iframe {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+
+    .video-modal-foot {
+        padding: 0.85rem 1.15rem;
+        text-align: center;
+    }
+
+    /* Watching on-site still counts the view, but people subscribe and comment
+       on YouTube — so the route back is prominent, not buried. */
+    .video-modal-yt {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #b98cf2;
+    }
+    .video-modal-yt:hover { text-decoration: underline; }
+
+    /* ----------------------------------------------------- markdown editor */
+
+    .md-tab {
+        padding: 0.35rem 0.85rem;
+        border-radius: 0.5rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        transition: color 0.15s, background 0.15s;
+    }
+    .md-tab:hover { color: var(--text-primary); }
+    .md-tab.is-active {
+        background: var(--brand);
+        color: #fff;
+    }
+
+    /* Monospace, and tall enough to actually write in. */
+    .md-input {
+        min-height: 28rem;
+        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+        font-size: 0.875rem;
+        line-height: 1.7;
+        tab-size: 4;
+    }
+
+    .md-preview {
+        min-height: 28rem;
+        overflow-y: auto;
+    }
+
+    /* --------------------------------------------------------------- status */
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.5;
+        border: 1px solid currentColor;
+    }
+
+    /* Status always carries a text label too — invoices get photocopied in
+       greyscale, where colour alone conveys nothing. */
+    .badge-paid { color: var(--paid); }
+    .badge-due { color: var(--due-soon); }
+    .badge-overdue { color: var(--overdue); }
+    .badge-info { color: var(--info); }
+}
+
+/*
+   Theme-conditional elements. Deliberately UNLAYERED: these must beat
+   Tailwind's `hidden` utility, and unlayered rules outrank every layered one
+   regardless of source order. Inside @layer components they would lose.
+*/
+:root[data-theme='dark'] .dark-only { display: block; }
+:root[data-theme='light'] .light-only { display: block; }
+
+@keyframes video-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes video-modal-rise {
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes orb-drift-a {
+    to { transform: translate3d(6vmax, 4vmax, 0) scale(1.12); }
+}
+@keyframes orb-drift-b {
+    to { transform: translate3d(-7vmax, -5vmax, 0) scale(1.08); }
+}
+@keyframes orb-drift-c {
+    to { transform: translate3d(-4vmax, 6vmax, 0) scale(0.9); }
+}
+
+/* ---------------------------------------------------------------- fallbacks */
+
+/* Browsers without backdrop-filter get an opaque surface rather than an
+   unreadable translucent one. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .glass-flat {
+        background: var(--surface-solid);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-flat {
+        background: var(--surface-solid);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+    .orb-field,
+    .grain {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .orb-1,
+    .orb-2,
+    .orb-3 {
+        animation: none;
+    }
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Print: the app UI is not a document. Invoices have their own stylesheet. */
+@media print {
+    .orb-field,
+    .grain,
+    .no-print {
+        display: none !important;
+    }
+    .glass,
+    .surface {
+        background: #fff;
+        border-color: #ddd;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+}

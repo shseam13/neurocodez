@@ -1,0 +1,46 @@
+# Keeps secrets and local junk out of the image.
+#
+# The Dockerfile does `COPY . .`, so without this the build would bake .env —
+# database password and all — into a layer that anyone who can pull the image
+# can read. Configuration comes from the environment at runtime, never from a
+# committed or copied file.
+
+.env
+.env.*
+!.env.example
+
+# Installed fresh inside the image, at the right versions for the target PHP.
+vendor/
+node_modules/
+
+# Built inside the image by the asset stage.
+public/build/
+public/hot
+public/storage
+
+# Local runtime state — caches, compiled views, logs, uploaded test files.
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/private/*
+storage/app/public/*
+bootstrap/cache/*
+
+# Never needed at runtime.
+.git/
+.github/
+.gitignore
+.gitattributes
+tests/
+phpunit.xml
+.claude/
+brand/source/
+*.md
+!README.md
+
+# Editor and OS noise.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
