@@ -86,6 +86,41 @@ class ProjectCrudTest extends TestCase
         $this->assertSame(1, $project->stageLogs()->count());
     }
 
+    /**
+     * Post ids as strings, the way a browser does.
+     *
+     * Every value in a real form submission arrives as a string. The test above
+     * passes $set->id as an int, so it never reproduced the mismatch that broke
+     * project creation in production: the model kept "1" from the request while
+     * the stage came back from the database as 1, and StageService's strict
+     * comparison rejected it with "That stage belongs to a different stage
+     * set." Creating a project through the form was impossible; every test
+     * passed.
+     */
+    #[Test]
+    public function a_project_can_be_created_from_real_form_input(): void
+    {
+        $this->seed(StageSetSeeder::class);
+        $set = StageSet::where('name', 'Web Development')->firstOrFail();
+
+        $this->actingAs($this->staff())->post('/admin/projects', [
+            'client_id' => (string) $this->client()->id,
+            'title' => 'Portal v2',
+            'agreed_amount' => '50000',
+            'currency' => 'BDT',
+            'commission_basis' => 'collected',
+            'status' => 'active',
+            'stage_set_id' => (string) $set->id,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $project = Project::firstOrFail();
+
+        $this->assertSame('Requirements', $project->currentStage->name);
+        $this->assertSame(1, $project->stageLogs()->count());
+        $this->assertIsInt($project->stage_set_id);
+        $this->assertIsInt($project->client_id);
+    }
+
     #[Test]
     public function adding_an_approved_charge_raises_the_balance_but_not_the_agreed_amount(): void
     {

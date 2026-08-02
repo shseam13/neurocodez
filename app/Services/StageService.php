@@ -25,7 +25,11 @@ class StageService
      */
     public function moveTo(Project $project, Stage $stage, ?User $by = null, ?string $note = null): ProjectStageLog
     {
-        if ($stage->stage_set_id !== $project->stage_set_id) {
+        // Compared as integers, not strictly as-is. The models cast these now,
+        // but a caller passing an unsaved model built from request input would
+        // otherwise hit "1" !== 1 and be told the stage belongs to a different
+        // set — which is both wrong and impossible to act on.
+        if ((int) $stage->stage_set_id !== (int) $project->stage_set_id) {
             throw new RuntimeException('That stage belongs to a different stage set.');
         }
 

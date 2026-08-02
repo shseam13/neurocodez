@@ -31,6 +31,22 @@ class Project extends Model
     protected function casts(): array
     {
         return [
+            /*
+             * Foreign keys cast to integer.
+             *
+             * A form posts "1", the database returns 1, and until the model is
+             * reloaded the attribute keeps whatever type it was assigned. Any
+             * strict comparison between the two then fails — StageService's
+             * "belongs to a different stage set" guard threw on every project
+             * created through the form, while every test passed because tests
+             * assign $set->id, which is already an int.
+             */
+            'client_id' => 'integer',
+            'partner_id' => 'integer',
+            'stage_set_id' => 'integer',
+            'current_stage_id' => 'integer',
+            'parent_id' => 'integer',
+
             'agreed_amount' => MoneyCast::class,
             'commission_percent' => 'decimal:2',
             'commission_basis' => CommissionBasis::class,
