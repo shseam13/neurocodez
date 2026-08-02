@@ -135,7 +135,7 @@ class PartnerController extends Controller
             return back()->withErrors(['invite' => $e->getMessage()]);
         }
 
-        return back()->with('status', "Invitation sent to {$data['email']}.");
+        return back()->with('status', "Invitation created for {$data['email']}. Copy the link below and send it to them.");
     }
 
     private function validated(Request $request): array

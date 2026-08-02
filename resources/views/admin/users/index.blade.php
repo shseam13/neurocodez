@@ -48,7 +48,7 @@
                     @if ($user->hasPendingInvitation())
                         <form method="POST" action="{{ route('admin.users.resend', $user) }}">
                             @csrf
-                            <button type="submit" class="text-ink-muted hover:text-ink">Resend</button>
+                            <button type="submit" class="text-ink-muted hover:text-ink">New link</button>
                         </form>
                         <form method="POST" action="{{ route('admin.users.revoke', $user) }}"
                               onsubmit="return confirm('Revoke this invitation?')">
@@ -64,6 +64,15 @@
                         </form>
                     @endif
                 </div>
+
+                {{-- Regenerated each render rather than stored, so it always
+                     carries a fresh 7-day expiry. --}}
+                @if ($user->hasPendingInvitation())
+                    <x-ui.copy-field class="w-full"
+                                     :value="app(\App\Services\InvitationService::class)->acceptUrl($user)"
+                                     label="Invitation link"
+                                     help="Send this to them yourself. It expires in 7 days and stops working once they set a password." />
+                @endif
             </div>
         @endforeach
 
@@ -85,10 +94,10 @@
             </div>
 
             <div class="mt-3 flex items-center gap-3">
-                <p class="text-xs text-ink-muted">They receive a link to set their own password.</p>
-                <button type="submit" data-busy-text="Sending…"
+                <p class="text-xs text-ink-muted">Creates a link they use to set their own password. You send it to them.</p>
+                <button type="submit" data-busy-text="Creating…"
                         class="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
-                    Send invitation
+                    Create invitation
                 </button>
             </div>
 
@@ -127,7 +136,7 @@
                     @if ($user->hasPendingInvitation())
                         <form method="POST" action="{{ route('admin.users.resend', $user) }}">
                             @csrf
-                            <button type="submit" class="text-ink-muted hover:text-ink">Resend</button>
+                            <button type="submit" class="text-ink-muted hover:text-ink">New link</button>
                         </form>
                     @endif
                     <form method="POST" action="{{ route('admin.users.active', $user) }}">

@@ -104,9 +104,24 @@ services:
         value: true
 
       # --- mail -------------------------------------------------------------
-      # Invitations and password resets are useless without a real sender.
+      # `log`, not `smtp`, and deliberately.
+      #
+      # Render's free tier blocks outbound SMTP. The connection is dropped
+      # rather than refused, so every send sat there until PHP's 60-second
+      # socket timeout, tying up the queue worker and failing silently.
+      #
+      # No email API can substitute while the sender is @gmail.com: Gmail and
+      # Yahoo's 2024 bulk-sender rules mean providers will not authenticate a
+      # domain you do not control, so Postmark refuses such accounts outright
+      # and Brevo rewrites the From address. Invitation links are therefore
+      # copied out of the admin and sent by hand.
+      #
+      # To turn real email on: register a domain, verify it with Resend, then
+      # set MAIL_MAILER=resend, RESEND_API_KEY and a MAIL_FROM_ADDRESS on that
+      # domain. Nothing else in the app changes — the notifications already
+      # exist and are already queued.
       - key: MAIL_MAILER
-        value: smtp
+        value: log
       - key: MAIL_HOST
         sync: false
       - key: MAIL_PORT

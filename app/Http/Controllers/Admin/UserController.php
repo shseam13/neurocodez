@@ -51,7 +51,7 @@ class UserController extends Controller
             return back()->withInput()->withErrors(['email' => $e->getMessage()]);
         }
 
-        return back()->with('status', "Invitation sent to {$user->email}.");
+        return back()->with('status', "Invitation created for {$user->email}. Copy the link below and send it to them.");
     }
 
     public function resend(Request $request, User $user): RedirectResponse
@@ -64,7 +64,7 @@ class UserController extends Controller
             return back()->withErrors(['user' => $e->getMessage()]);
         }
 
-        return back()->with('status', "Invitation re-sent to {$user->email}.");
+        return back()->with('status', "New invitation link generated for {$user->email}.");
     }
 
     public function revoke(User $user): RedirectResponse
