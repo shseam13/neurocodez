@@ -14,6 +14,44 @@ if [ -z "${APP_KEY}" ]; then
     exit 1
 fi
 
+# A missing DB_CONNECTION falls back to sqlite, and Laravel will happily create
+# the file and migrate into it. The container then looks perfectly healthy while
+# writing every payment and invoice to an ephemeral disk that is erased on the
+# next deploy. Silent data loss is worse than a failed boot, so refuse.
+if [ "${APP_ENV}" = "production" ] && [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
+    echo "FATAL: DB_CONNECTION is sqlite (or unset) in production."
+    echo "The container disk is ephemeral — everything written there is destroyed"
+    echo "on the next deploy. Set DB_CONNECTION=mysql and the DB_* credentials."
+    exit 1
+fi
+
+# Aiven refuses unencrypted connections, so PDO needs their CA on disk. Rather
+# than committing it, paste the certificate into the DB_SSL_CA_CERT environment
+# variable and it gets written here on boot — the image stays generic, and
+# rotating the CA is a dashboard edit rather than a redeploy.
+if [ -n "${DB_SSL_CA_CERT}" ]; then
+    echo "==> Writing database CA certificate"
+    mkdir -p /var/www/html/storage/certs
+    printf '%s\n' "${DB_SSL_CA_CERT}" > /var/www/html/storage/certs/aiven-ca.pem
+    # 644, not 600. This script runs as root but php-fpm serves requests as
+    # www-data, and a CA certificate it cannot read fails the TLS handshake with
+    # "Cannot connect to MySQL using SSL". That failure is invisible at deploy
+    # time — migrations and /up both succeed as root — and every actual page
+    # then returns 500. The certificate is public anyway; it is not a secret.
+    chmod 644 /var/www/html/storage/certs/aiven-ca.pem
+fi
+
+# Catch the mismatch explicitly. PDO's own failure here is "SQLSTATE[HY000]
+# [2002]", which says nothing about a missing file and sends you looking at
+# credentials instead.
+if [ -n "${MYSQL_ATTR_SSL_CA}" ] && [ ! -f "${MYSQL_ATTR_SSL_CA}" ]; then
+    echo "FATAL: MYSQL_ATTR_SSL_CA points at ${MYSQL_ATTR_SSL_CA}, which does not exist."
+    echo "Paste the CA certificate from the Aiven console into the DB_SSL_CA_CERT"
+    echo "environment variable, or unset MYSQL_ATTR_SSL_CA if the database does"
+    echo "not require TLS."
+    exit 1
+fi
+
 echo "==> Caching configuration"
 php artisan config:cache
 php artisan route:cache

@@ -34,16 +34,21 @@ php artisan key:generate --show
 ### 1. Database
 
 Create a MySQL service on Aiven, then take the connection details from its
-overview page. Aiven **requires TLS**, so download their CA certificate and
-commit it:
+overview page — host, port, database, user, password.
 
-```bash
-mkdir -p storage/certs
-# download from the Aiven console -> your service -> "CA Certificate"
-mv ~/Downloads/ca.pem storage/certs/aiven-ca.pem
-```
+Aiven **requires TLS**, so PDO needs their CA certificate on disk. Download it
+from the service page ("CA Certificate") and paste the entire contents —
+`-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines included —
+into the `DB_SSL_CA_CERT` environment variable in Render.
 
-Then set `MYSQL_ATTR_SSL_CA=/var/www/html/storage/certs/aiven-ca.pem`.
+The entrypoint writes it to `storage/certs/aiven-ca.pem` on every boot, which is
+where `MYSQL_ATTR_SSL_CA` already points. Nothing is committed, so the image
+stays usable against any database, and rotating the CA is a dashboard edit
+rather than a redeploy.
+
+> Miss this and the connection fails with `SQLSTATE[HY000] [2002]`, which reads
+> like bad credentials. The entrypoint checks for the file first and says so
+> plainly instead.
 
 ### 2. Storage
 
@@ -117,7 +122,7 @@ Only environment variables:
 | Setting | Render | cPanel |
 |---|---|---|
 | `DB_*` | Aiven | cPanel MySQL |
-| `MYSQL_ATTR_SSL_CA` | Aiven CA path | *(remove — local socket)* |
+| `DB_SSL_CA_CERT` / `MYSQL_ATTR_SSL_CA` | Aiven CA | *(remove both — local socket)* |
 | `FILESYSTEM_DISK` | `s3` | `local` |
 | `SESSION_DRIVER` | `database` | `database` (keep) |
 | `LOG_CHANNEL` | `stderr` | `stack` |
@@ -174,6 +179,12 @@ unless you want to.
    chmod -R 775 storage bootstrap/cache
    ```
 
+8. **Narrow the trusted proxies.** `bootstrap/app.php` trusts `*`, which is
+   correct on Render — the container has no public address, so the edge is the
+   only way in and a forged `X-Forwarded-Proto` cannot arrive. On cPanel
+   requests hit Apache directly, so change `at: '*'` to the server's own IP, or
+   drop the `trustProxies()` call entirely if there is no proxy in front.
+
 ### Rehearse it before you pay
 
 You can prove the switch works without buying anything:
@@ -207,6 +218,10 @@ rebuilt.
 ## Post-deploy checklist
 
 - [ ] `/up` returns 200
+- [ ] **`/` and `/blog` return 200 — not just `/up`.** The health check passes
+      without touching the database, so a broken connection still shows green
+- [ ] View source on `/` and confirm the `/build/assets/…` links are `https://`
+      *(proves the forwarded-proto handling; `http://` here means no CSS or JS)*
 - [ ] Sign in as owner; change the seeded password
 - [ ] `/blog` returns `s-maxage=3600` and **no** `Set-Cookie`
 - [ ] `cf-cache-status: HIT` on a second request to `/`

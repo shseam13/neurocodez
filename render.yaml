@@ -16,6 +16,12 @@ services:
     healthCheckPath: /up
 
     envVars:
+      # nginx listens on 8080 (docker/nginx.conf). Render's port auto-detection
+      # usually finds it, but stating it removes the guesswork — a mismatch here
+      # shows up as a health check that never passes, with a healthy container.
+      - key: PORT
+        value: 8080
+
       - key: APP_NAME
         value: Neuro Codez
       - key: APP_ENV
@@ -48,7 +54,13 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      # Aiven requires TLS.
+      # Aiven requires TLS. Paste the whole CA certificate — including the
+      # BEGIN/END lines — from the Aiven console into DB_SSL_CA_CERT; the
+      # entrypoint writes it to the path below on boot. It is a public
+      # certificate, not a secret, but it stays out of the repo so the image
+      # works against any database.
+      - key: DB_SSL_CA_CERT
+        sync: false
       - key: MYSQL_ATTR_SSL_CA
         value: /var/www/html/storage/certs/aiven-ca.pem
 
