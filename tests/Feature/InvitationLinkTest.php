@@ -58,7 +58,7 @@ class InvitationLinkTest extends TestCase
         $this->actingAs($owner)
             ->get(route('admin.partners.show', $partner))
             ->assertOk()
-            ->assertSee('Invitation link')
+            ->assertSee('Link only')
             ->assertSee('data-copy-target', escape: false)
             // The signed route, not a bare path — without the signature the
             // link is refused by the `signed` middleware.
@@ -95,6 +95,90 @@ class InvitationLinkTest extends TestCase
     }
 
     #[Test]
+    public function the_page_offers_the_whole_message_to_copy_not_just_the_link(): void
+    {
+        $owner = $this->owner();
+        $partner = Partner::create(['name' => 'Hridoy', 'default_commission_percent' => 50]);
+
+        $invited = app(InvitationService::class)
+            ->invitePartner($partner, 'Hridoy', 'hridoy@example.com');
+
+        $response = $this->actingAs($owner)
+            ->get(route('admin.partners.show', $partner))
+            ->assertOk()
+            ->assertSee('Message to send')
+            ->assertSee('Hello Hridoy,')
+            ->assertSee('see the projects you brought us and what you have earned')
+            ->assertSee('This link expires in 7 days.');
+
+        // The link has to be inside the pasted text, not only in the separate
+        // field — otherwise the message arrives with no way to act on it.
+        $body = app(InvitationService::class)->messageFor($invited)->toPlainText();
+        $this->assertStringContainsString('/invitation/'.$invited->id, $body);
+        $this->assertStringContainsString('signature=', $body);
+
+        $response->assertSee('You have been invited to', escape: false);
+    }
+
+    /**
+     * The wording is built from one InvitationMessage so the emailed version
+     * and the pasted version cannot drift. If the notification stops matching,
+     * people receive different instructions depending on how they were invited.
+     */
+    #[Test]
+    public function the_emailed_and_pasted_wording_come_from_the_same_source(): void
+    {
+        $this->seed(PermissionSeeder::class);
+        $partner = Partner::create(['name' => 'Hridoy', 'default_commission_percent' => 50]);
+
+        $invited = app(InvitationService::class)
+            ->invitePartner($partner, 'Hridoy', 'hridoy@example.com');
+
+        $service = app(InvitationService::class);
+        $message = $service->messageFor($invited);
+
+        $mail = (new \App\Notifications\AccountInvitation($service->acceptUrl($invited)))
+            ->toMail($invited);
+
+        $this->assertSame($message->subject(), $mail->subject);
+        $this->assertSame($message->greeting(), $mail->greeting);
+        $this->assertContains($message->purposeLine(), $mail->introLines);
+        $this->assertContains($message->expiryLine(), $mail->outroLines);
+    }
+
+    #[Test]
+    public function the_message_describes_what_that_audience_will_actually_see(): void
+    {
+        $this->seed(PermissionSeeder::class);
+
+        $client = \App\Models\Client::create(['name' => 'Acme Ltd']);
+        $clientUser = app(InvitationService::class)
+            ->inviteClient($client, 'Rahim', 'rahim@example.com');
+
+        $partner = Partner::create(['name' => 'Hridoy', 'default_commission_percent' => 50]);
+        $partnerUser = app(InvitationService::class)
+            ->invitePartner($partner, 'Hridoy', 'hridoy@example.com');
+
+        $service = app(InvitationService::class);
+
+        $this->assertStringContainsString(
+            'track your projects, files and invoices',
+            $service->messageFor($clientUser)->toPlainText()
+        );
+
+        // A client must never be told about commission.
+        $this->assertStringNotContainsString(
+            'earned',
+            $service->messageFor($clientUser)->toPlainText()
+        );
+
+        $this->assertStringContainsString(
+            'what you have earned',
+            $service->messageFor($partnerUser)->toPlainText()
+        );
+    }
+
+    #[Test]
     public function an_unsigned_link_is_refused(): void
     {
         $partner = Partner::create(['name' => 'Hridoy', 'default_commission_percent' => 50]);
@@ -127,6 +211,9 @@ class InvitationLinkTest extends TestCase
         $this->actingAs($owner)
             ->get(route('admin.partners.show', $partner))
             ->assertOk()
-            ->assertDontSee('Invitation link');
+            ->assertDontSee('Message to send')
+            ->assertDontSee('Link only')
+            // The signed URL itself must be gone, not merely its label.
+            ->assertDontSee('/invitation/'.$invited->id, escape: false);
     }
 }

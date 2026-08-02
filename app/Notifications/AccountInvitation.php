@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Models\CompanySetting;
+use App\Models\User;
+use App\Support\InvitationMessage;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -39,26 +40,28 @@ class AccountInvitation extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $company = CompanySetting::current()->name;
-        $audience = match (true) {
-            $notifiable->isClient() => 'track your projects, files and invoices',
-            $notifiable->isPartner() => 'see the projects you brought us and what you have earned',
-            default => 'manage clients, projects and invoices',
-        };
+        // Same wording as the copy-and-paste version in the admin. Written
+        // twice, the two would drift apart.
+        $message = $this->message($notifiable);
 
         return (new MailMessage)
-            ->subject("You have been invited to {$company}")
-            ->greeting("Hello {$notifiable->name},")
-            ->line($this->invitedBy
-                ? "{$this->invitedBy} has invited you to {$company}."
-                : "You have been invited to {$company}.")
-            ->line("Set a password and you can {$audience}.")
+            ->subject($message->subject())
+            ->greeting($message->greeting())
+            ->line($message->invitedByLine())
+            ->line($message->purposeLine())
             ->action('Set your password', $this->acceptUrl)
-            ->line("This link expires in {$this->expiresInDays} days.")
-            // The link is the only credential in this email; no password is ever
-            // sent, so a forwarded or leaked message cannot hand over an account
-            // after it has been used or expired.
-            ->line('If you were not expecting this, you can ignore this email — nothing will happen.')
-            ->salutation("— {$company}");
+            ->line($message->expiryLine())
+            ->line($message->reassuranceLine())
+            ->salutation($message->signOff());
+    }
+
+    public function message(User $notifiable): InvitationMessage
+    {
+        return new InvitationMessage(
+            $notifiable,
+            $this->acceptUrl,
+            $this->invitedBy,
+            $this->expiresInDays,
+        );
     }
 }

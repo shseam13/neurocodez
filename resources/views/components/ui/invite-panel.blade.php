@@ -30,10 +30,18 @@
                  expiry — reload the page and you have a working link again. --}}
             @if ($user->hasPendingInvitation())
                 @can('manageUsers')
+                    @php $invite = app(\App\Services\InvitationService::class)->messageFor($user, auth()->user()); @endphp
+
+                    <x-ui.copy-field class="mt-3"
+                                     :value="$invite->toPlainText()"
+                                     :rows="9"
+                                     label="Message to send"
+                                     :help="'Emailing it? Subject: ' . $invite->subject()" />
+
                     <x-ui.copy-field class="mt-3"
                                      :value="app(\App\Services\InvitationService::class)->acceptUrl($user)"
-                                     label="Invitation link"
-                                     help="Send this to them yourself. It expires in 7 days and stops working once they set a password." />
+                                     label="Link only"
+                                     help="Expires in 7 days, and stops working once they set a password. Reload this page for a fresh one." />
                 @endcan
             @endif
         </div>

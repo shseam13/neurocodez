@@ -68,10 +68,20 @@
                 {{-- Regenerated each render rather than stored, so it always
                      carries a fresh 7-day expiry. --}}
                 @if ($user->hasPendingInvitation())
-                    <x-ui.copy-field class="w-full"
-                                     :value="app(\App\Services\InvitationService::class)->acceptUrl($user)"
-                                     label="Invitation link"
-                                     help="Send this to them yourself. It expires in 7 days and stops working once they set a password." />
+                    @php $invite = app(\App\Services\InvitationService::class)->messageFor($user, auth()->user()); @endphp
+
+                    <div class="w-full gap-4 sm:flex">
+                        <x-ui.copy-field class="min-w-0 flex-1"
+                                         :value="$invite->toPlainText()"
+                                         :rows="9"
+                                         label="Message to send"
+                                         :help="'Emailing it? Subject: ' . $invite->subject()" />
+
+                        <x-ui.copy-field class="mt-3 min-w-0 flex-1 sm:mt-0"
+                                         :value="app(\App\Services\InvitationService::class)->acceptUrl($user)"
+                                         label="Link only"
+                                         help="Expires in 7 days, and stops working once they set a password. Reload this page for a fresh one." />
+                    </div>
                 @endif
             </div>
         @endforeach

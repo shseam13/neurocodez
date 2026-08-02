@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Partner;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
+use App\Support\InvitationMessage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -83,6 +84,26 @@ class InvitationService
             'invitation.accept',
             now()->addDays(self::EXPIRES_DAYS),
             ['user' => $user->getKey()],
+        );
+    }
+
+    /**
+     * The invitation as text, for sending by hand.
+     *
+     * The host blocks outbound SMTP, so this — not the email — is how people
+     * actually receive their invitation. Built from the same InvitationMessage
+     * the notification uses, with a freshly signed link.
+     *
+     * $by is optional because the admin renders this outside the request that
+     * created the invitation, where the original inviter is no longer known.
+     */
+    public function messageFor(User $user, ?User $by = null): InvitationMessage
+    {
+        return new InvitationMessage(
+            $user,
+            $this->acceptUrl($user),
+            $by?->name,
+            self::EXPIRES_DAYS,
         );
     }
 
