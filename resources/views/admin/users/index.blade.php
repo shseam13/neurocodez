@@ -86,7 +86,7 @@
 
             <div class="mt-3 flex items-center gap-3">
                 <p class="text-xs text-ink-muted">They receive a link to set their own password.</p>
-                <button type="submit"
+                <button type="submit" data-busy-text="Sending…"
                         class="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
                     Send invitation
                 </button>

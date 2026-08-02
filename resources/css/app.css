@@ -585,6 +585,31 @@
     .badge-due { color: var(--due-soon); }
     .badge-overdue { color: var(--overdue); }
     .badge-info { color: var(--info); }
+
+    /* Busy state for submit buttons. Defined here rather than composed from
+       utilities in JavaScript, because Tailwind only emits classes it finds
+       while scanning source — a class name built inside a JS string is not
+       reliably seen. */
+    .btn-busy {
+        cursor: progress;
+        opacity: 0.75;
+    }
+
+    .btn-spinner {
+        display: inline-block;
+        width: 0.9em;
+        height: 0.9em;
+        margin-inline-end: 0.5em;
+        vertical-align: -0.1em;
+        border: 2px solid currentColor;
+        border-block-start-color: transparent;
+        border-radius: 50%;
+        animation: btn-spin 0.6s linear infinite;
+    }
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
 }
 
 /*

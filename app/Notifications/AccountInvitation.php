@@ -6,10 +6,22 @@ namespace App\Notifications;
 
 use App\Models\CompanySetting;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class AccountInvitation extends Notification
+/**
+ * Queued, and it has to be.
+ *
+ * Sent inline, the whole SMTP handshake happens inside the HTTP request. A slow
+ * or unreachable mail host then holds the connection open until nginx gives up
+ * at fastcgi_read_timeout and returns 504 — the invitation may or may not have
+ * gone out, and the person who clicked has no idea which.
+ *
+ * The `Queueable` trait alone does nothing; ShouldQueue is what moves the send
+ * onto the supervised queue worker.
+ */
+class AccountInvitation extends Notification implements ShouldQueue
 {
     use Queueable;
 

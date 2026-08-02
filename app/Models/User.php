@@ -127,4 +127,16 @@ class User extends Authenticatable
             ->whereHas('roles', fn (Builder $q) => $q->where('name', self::ROLE_SUPER_ADMIN))
             ->doesntExist();
     }
+
+    /**
+     * Queue the reset email instead of sending it inside the request.
+     *
+     * Laravel's default is inline, which stalls the response on the SMTP
+     * handshake and can time the request out at the web server. See
+     * [QueuedResetPassword].
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\QueuedResetPassword($token));
+    }
 }

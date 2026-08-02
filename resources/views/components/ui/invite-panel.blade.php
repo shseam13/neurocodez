@@ -34,7 +34,7 @@
                    class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none">
             <input type="email" name="email" placeholder="Their email" required
                    class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none">
-            <button type="submit"
+            <button type="submit" data-busy-text="Sending…"
                     class="w-full rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover">
                 Send invitation
             </button>

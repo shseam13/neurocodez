@@ -1,5 +1,6 @@
 import './video-modal.js';
 import './markdown-editor.js';
+import './form-submit.js';
 
 /**
  * Theme control.
